@@ -1,0 +1,537 @@
+openapi: 3.0.3
+info:
+  title: Microservices Platform API
+  description: Combined API documentation for the Post Feed, File Upload, and Notification microservices, routed via the API Gateway.
+  version: 1.0.0
+servers:
+  - url: http://localhost:3000
+    description: API Gateway
+paths:
+  /health:
+    get:
+      summary: API Gateway Health Check
+      description: Returns the health status of the API Gateway itself.
+      responses:
+        '200':
+          description: Gateway is up and running.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: UP
+                  service:
+                    type: string
+                    example: API Gateway
+
+  /api/posts:
+    get:
+      summary: Retrieve all posts
+      description: Returns a list of all posts sorted by creation date (newest first).
+      security:
+        - BearerAuth: []
+        - ApiKeyAuth: []
+      responses:
+        '200':
+          description: A list of posts.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/PostResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+    post:
+      summary: Create a new post
+      description: Publishes a new post to the feed.
+      security:
+        - BearerAuth: []
+        - ApiKeyAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreatePost'
+      responses:
+        '201':
+          description: Post successfully created.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PostResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /api/posts/{id}:
+    get:
+      summary: Retrieve a post by ID
+      description: Returns detailed metadata for a single post.
+      security:
+        - BearerAuth: []
+        - ApiKeyAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: UUID of the post
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Post metadata.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PostResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    put:
+      summary: Update an existing post
+      description: Updates the title or content of an existing post. Only the creator of the post or an administrator can perform this action.
+      security:
+        - BearerAuth: []
+        - ApiKeyAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: UUID of the post
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdatePost'
+      responses:
+        '200':
+          description: Post updated successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PostResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/posts/{id}:
+    delete:
+      summary: Delete a post
+      description: Deletes an existing post. Only the creator of the post or an administrator can perform this action.
+      security:
+        - BearerAuth: []
+        - ApiKeyAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: UUID of the post
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Post deleted successfully.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Post successfully deleted
+                  id:
+                    type: string
+                    format: uuid
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/files/upload:
+    post:
+      summary: Upload a new file
+      description: Uploads a file to the system storage.
+      security:
+        - BearerAuth: []
+        - ApiKeyAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                file:
+                  type: string
+                  format: binary
+                  description: File payload to upload
+      responses:
+        '201':
+          description: File uploaded successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FileResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /api/files/files/{id}:
+    get:
+      summary: Retrieve file metadata
+      description: Returns metadata about an uploaded file.
+      security:
+        - BearerAuth: []
+        - ApiKeyAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: UUID of the file
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: File metadata details.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FileResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    delete:
+      summary: Delete an uploaded file
+      description: Removes the file from storage and database.
+      security:
+        - BearerAuth: []
+        - ApiKeyAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: UUID of the file
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: File successfully deleted.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: File successfully deleted
+                  id:
+                    type: string
+                    format: uuid
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/notifications:
+    get:
+      summary: Get notifications log
+      description: Returns a log of all generated notifications. For regular users, this returns only notifications sent to them. Admins can view all notifications.
+      security:
+        - BearerAuth: []
+        - ApiKeyAuth: []
+      parameters:
+        - name: userId
+          in: query
+          required: false
+          description: Filter notifications by User ID (Admin privilege)
+          schema:
+            type: string
+      responses:
+        '200':
+          description: List of notifications.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/NotificationResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+    post:
+      summary: Create a manual notification
+      description: Artificially dispatches and records a notification to the system and publishes a notification event.
+      security:
+        - BearerAuth: []
+        - ApiKeyAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateNotification'
+      responses:
+        '201':
+          description: Notification created and dispatched successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotificationResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /api/notifications/{id}:
+    get:
+      summary: Get single notification by ID
+      description: Retrieves a specific notification log details. Regular users can only access their own notification logs.
+      security:
+        - BearerAuth: []
+        - ApiKeyAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: UUID of the notification log
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Notification log.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotificationResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+components:
+  securitySchemes:
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: X-API-KEY
+      description: API Key authentication. Use `default-secret-key` for default mock credentials.
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: Bearer Mock token. Use `valid-mock-token` or any string longer than 10 characters.
+  
+  schemas:
+    CreatePost:
+      type: object
+      required:
+        - title
+        - content
+      properties:
+        title:
+          type: string
+          example: Getting Started with Microservices
+        content:
+          type: string
+          example: This is a beautiful boilerplate!
+        authorId:
+          type: string
+          example: user-123
+          description: Optional override. In production, authorId is implicitly derived from auth headers.
+
+    UpdatePost:
+      type: object
+      properties:
+        title:
+          type: string
+          example: Updated Microservices Post
+        content:
+          type: string
+          example: This is an updated beautiful boilerplate!
+
+    PostResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          example: 550e8400-e29b-41d4-a716-446655440000
+        title:
+          type: string
+          example: Getting Started with Microservices
+        content:
+          type: string
+          example: This is a beautiful boilerplate!
+        authorId:
+          type: string
+          example: user-123
+        createdAt:
+          type: string
+          format: date-time
+          example: "2026-05-29T10:54:33Z"
+        updatedAt:
+          type: string
+          format: date-time
+          example: "2026-05-29T10:54:33Z"
+
+    FileResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          example: a6f1a8c3-dc03-4927-9c96-3c58e5f2a1b9
+        filename:
+          type: string
+          example: profile-picture.jpg
+        url:
+          type: string
+          example: http://localhost:3002/uploads/1716942000000-987654321.jpg
+        mimetype:
+          type: string
+          example: image/jpeg
+        size:
+          type: integer
+          format: int64
+          example: 1048576
+        uploadedAt:
+          type: string
+          format: date-time
+          example: "2026-05-29T10:54:33Z"
+
+    CreateNotification:
+      type: object
+      required:
+        - userId
+        - type
+        - title
+        - message
+      properties:
+        userId:
+          type: string
+          example: user-123
+        type:
+          type: string
+          enum: [email, push, in-app]
+          example: in-app
+        title:
+          type: string
+          example: Welcome!
+        message:
+          type: string
+          example: Thank you for registering to our platform.
+
+    NotificationResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          example: c9a64e10-1b2c-3d4e-5f6a-7b8c9d0e1f2a
+        userId:
+          type: string
+          example: user-123
+        type:
+          type: string
+          enum: [email, push, in-app]
+          example: in-app
+        title:
+          type: string
+          example: Welcome!
+        message:
+          type: string
+          example: Thank you for registering to our platform.
+        status:
+          type: string
+          enum: [sent, failed, pending]
+          example: sent
+        createdAt:
+          type: string
+          format: date-time
+          example: "2026-05-29T10:54:33Z"
+
+  responses:
+    BadRequest:
+      description: Missing required fields or validation failure.
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              error:
+                type: string
+                example: Validation Error
+              message:
+                type: string
+                example: Title and content are required
+
+    Unauthorized:
+      description: Bearer Token or API Key is missing or invalid.
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              error:
+                type: string
+                example: Unauthorized
+              message:
+                type: string
+                example: Provide a valid API Key in X-API-KEY header or a Bearer token in Authorization header.
+
+    Forbidden:
+      description: User lacks authorization to modify this specific resource.
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              error:
+                type: string
+                example: Forbidden
+              message:
+                type: string
+                example: You are not authorized to update this post
+
+    NotFound:
+      description: The requested resource was not found.
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              error:
+                type: string
+                example: Not Found
+              message:
+                type: string
+                example: Post with ID 550e8400-e29b-41d4-a716-446655440000 not found
