@@ -1,0 +1,125 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: platform-postgres
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./docker/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  rabbitmq:
+    image: rabbitmq:3-management-alpine
+    container_name: platform-rabbitmq
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    healthcheck:
+      test: ["CMD-SHELL", "rabbitmq-diagnostics -q ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  gateway:
+    build:
+      context: .
+      dockerfile: services/gateway/Dockerfile
+    container_name: platform-gateway
+    ports:
+      - "3000:3000"
+    environment:
+      - PORT=3000
+      - POST_FEED_SERVICE_URL=http://post-feed-service:3001
+      - FILE_UPLOAD_SERVICE_URL=http://file-upload-service:3002
+      - NOTIFICATION_SERVICE_URL=http://notification-service:3003
+      - API_KEY=default-secret-key
+    depends_on:
+      post-feed-service:
+        condition: service_started
+      file-upload-service:
+        condition: service_started
+      notification-service:
+        condition: service_started
+
+  post-feed-service:
+    build:
+      context: .
+      dockerfile: services/post-feed-service/Dockerfile
+    container_name: platform-post-feed
+    ports:
+      - "3001:3001"
+    environment:
+      - PORT=3001
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_USER=postgres
+      - DB_PASSWORD=postgres
+      - DB_NAME=post_feed_db
+      - RABBITMQ_URL=amqp://rabbitmq:5672
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+
+  file-upload-service:
+    build:
+      context: .
+      dockerfile: services/file-upload-service/Dockerfile
+    container_name: platform-file-upload
+    ports:
+      - "3002:3002"
+    environment:
+      - PORT=3002
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_USER=postgres
+      - DB_PASSWORD=postgres
+      - DB_NAME=file_upload_db
+      - RABBITMQ_URL=amqp://rabbitmq:5672
+      - PUBLIC_URL=http://localhost:3002
+    volumes:
+      - uploads_data:/app/services/file-upload-service/uploads
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+
+  notification-service:
+    build:
+      context: .
+      dockerfile: services/notification-service/Dockerfile
+    container_name: platform-notification
+    ports:
+      - "3003:3003"
+    environment:
+      - PORT=3003
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_USER=postgres
+      - DB_PASSWORD=postgres
+      - DB_NAME=notification_db
+      - RABBITMQ_URL=amqp://rabbitmq:5672
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+
+volumes:
+  postgres_data:
+  rabbitmq_data:
+  uploads_data:
