@@ -2,15 +2,14 @@
   "name": "microservices-platform-boilerplate",
   "version": "1.0.0",
   "private": true,
-  "workspaces": [
-    "services/*"
-  ],
+  "packageManager": "pnpm@9.15.0",
   "scripts": {
-    "build": "npm run build --workspaces --if-present",
-    "test": "npm run test --workspaces --if-present",
-    "dev": "npm run dev --workspaces --if-present"
+    "build": "turbo build",
+    "test": "turbo test",
+    "dev": "turbo dev"
   },
   "devDependencies": {
+    "turbo": "^2.9.16",
     "typescript": "^5.3.3"
   }
 }
