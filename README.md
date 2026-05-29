@@ -201,11 +201,11 @@ If you want to run or test the services locally:
 
 ```bash
 # Install all package dependencies and link workspaces
-npm install
+pnpm install
 
-# Compile all workspace packages and create distribution assets
-npm run build
+# Compile all workspace packages using Turborepo
+pnpm build
 
-# Boot local services in development watch mode (requires local PostgreSQL & RabbitMQ running)
-npm run dev
+# Boot local services in development watch mode using Turborepo (requires local PostgreSQL & RabbitMQ running)
+pnpm dev
 ```
