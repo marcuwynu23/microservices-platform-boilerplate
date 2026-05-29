@@ -13,7 +13,7 @@
     "dotenv": "^16.4.5",
     "express": "^4.19.2",
     "pg": "^8.11.3",
-    "shared-contracts": "*"
+    "shared-contracts": "workspace:*"
   },
   "devDependencies": {
     "@types/amqplib": "^0.10.5",
